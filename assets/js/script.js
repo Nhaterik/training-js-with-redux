@@ -1,172 +1,142 @@
-
-function validator(options){
-    function getParent(element,selector) {
+function Validator(formSelector,options={})
+{  
+    function getParent(element,selector)
+    {
         while(element.parentElement)
         {
             if(element.parentElement.matches(selector))
             return element.parentElement
             element=element.parentElement
         }
-        
     }
-    const selectorRules={}
-    function validate(inputElement,rule) {
-        // const errorElement=inputElement.parentElement.querySelector(options.errorSelector)
-        const errorElement=getParent(inputElement,options.formGroupSelector).querySelector(options.errorSelector)
-        var errorMes
-        // =rule.test(inputElement.value)
-        // take each rule of selector
-        const rules=selectorRules[rule.selector]
-        // check each rule in that selector
-        for(var i=0;i<rules.length;i++){
-            switch(inputElement.type) {
-                case 'radio':
-                case 'checkbox':
-                errorMes=rules[i](formElement.querySelector(rule.selector+':checked'))
-                    break;
-                default:
-                errorMes=rules[i](inputElement.value)
+    var validatorRules=
+    {
+        required:function(value)
+        {
+            return value ? undefined :'Please fill this gap'
+        },
+        email:function(value)
+        {
+            var regx=/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/
+            return regx.test(value) ? undefined : 'this gap should be filled correct email'
+        },
+        min:function(min)
+        {
+            return function(value)
+            {
+                return value.length>=min ? undefined : `Please type at least ${min} characters`
             }
+        },
+        max:function(max)
+        {
+            return function(value)
+            {
+                return value.length<=max ? undefined : `Please type at least ${max} characters`
+            }
+        },
+    }
+    var formRules={}
+    var formElement=document.querySelector(formSelector)
+    if(formElement)
+    {
+        var inputs=formElement.querySelectorAll('[name][rules]')
+        for(var input of inputs)
+        {
+            var rules=input.getAttribute('rules').split('|')
+            for(var rule of rules)
+            {
+                var isRuleHasVal=rule.includes(':')
+                var ruleInfo
+
+                if(isRuleHasVal)
+                {
+                    ruleInfo=rule.split(':')
+                    rule=ruleInfo[0]
+                }
+
+                var ruleFunc=validatorRules[rule]
+                if(isRuleHasVal)
+                ruleFunc=ruleFunc(ruleInfo[1])
+
+                if(Array.isArray(formRules[input.name]))
+                formRules[input.name].push(ruleFunc)
+                else 
+                formRules[input.name]=[ruleFunc]
+            }
+            input.onblur=handleValidate
+            input.oninput=handleClearValidate
+            formElement.onsubmit=handleSubmit
+        }
+    }
+
+    function handleValidate(e)
+    {
+        var rulesFunc=formRules[e.target.name]
+        var errorMes
+        for(var ruleFunc of rulesFunc)
+        {
+            errorMes=ruleFunc(e.target.value)
             if(errorMes) break;
         }
-        
-       if(errorMes)
-       {
-        errorElement.innerText=errorMes
-        getParent(inputElement,options.formGroupSelector).classList.add('invalid')
-       }
-       else {
-        errorElement.innerText=''
-        getParent(inputElement,options.formGroupSelector).classList.remove('invalid')
-
-       }
-       // THINK about error undefined will remove invalid so - >true
-       return !errorMes
-    }
- const formElement=document.querySelector(options.form)
- if(formElement)
- {
-    formElement.onsubmit=function(e){
-        // removed reload the page
-        e.preventDefault();
-        var isFormValid=true
-        options.rules.forEach(rule=>{
-            const inputElement=formElement.querySelector(rule.selector)
-            var isValid=validate(inputElement,rule)
-            if(!isValid) {
-               isFormValid=false
-            } 
-        })
-        if(isFormValid) {
-            if(typeof options.onSubmit==='function') {
-            var enableInput=formElement.querySelectorAll('[name]:not([disabled])')
-            var formValues=Array.from(enableInput).reduce( (values,input) => {
-                switch(input.type)
+        if(errorMes)
+        {
+            var formGroup=getParent(e.target,'.form-group');
+            var formMes=formGroup.querySelector('.form-mes')
+            if(formGroup)
                 {
-                    case 'radio':
-                        values[input.name]=formElement.querySelector('input[name="'+input.name+'"]:checked').value
-                        break;
-                    case 'checkbox':
-                        if(!input.matches(':checked')){
-                            // values[input.name]='';
-                            return values
-                        }
-                        if(!Array.isArray(values[input.name]) ){
-                            values[input.name]=[]
-                        }
-                        values[input.name].push(input.value);
-                        break;
-                    default:
-                        values[input.name]=input.value
+                    formGroup.classList.add('invalid')
+                    formMes.innerText=errorMes
                 }
-                return  values } ,{})
-
-                options.onSubmit(formValues)
-            }
         }
-      
-
-        
+        return errorMes
     }
-    options.rules.forEach(rule => {
-        if(Array.isArray(selectorRules[rule.selector])){
-            selectorRules[rule.selector].push(rule.test)
-        } else {
-            selectorRules[rule.selector]=[rule.test]
+    function handleClearValidate(e)
+    {
+        var formGroup=getParent(e.target,'.form-group')
+        if(formGroup.classList.contains('invalid'))
+        {
+            formGroup.classList.remove('invalid')
+            var formMes=formGroup.querySelector('.form-mes')
+            if(formMes)
+            formMes.innerText=''
         }
-        // const inputElement=formElement.querySelector(rule.selector)
-        const inputElements=formElement.querySelectorAll(rule.selector)
-        Array.from(inputElements).forEach(inputElement=>{
-            
-            if(inputElement)    
+    }
+    function handleSubmit(e)
+    {
+        e.preventDefault()
+        var inputs=formElement.querySelectorAll('[name][rules]')
+        var isValid=true
+        for(var input of inputs)
+        {
+            // auto create an event
+            if(handleValidate({target:input}))
+            isValid=false
+        }
+        if(isValid) 
+        {
+            if(typeof options.onSubmit==='function')
             {
-                inputElement.onblur=function(){
-                    validate(inputElement,rule)
-                }
-                inputElement.oninput=function(){
-             const errorElement=getParent(inputElement,options.formGroupSelector).querySelector(options.errorSelector)
-                    errorElement.innerText=''
-                    getParent(inputElement,options.formGroupSelector).classList.remove('invalid')
-                }
+                var formValues=Array.from(inputs).reduce((values,input)=>
+            {
+                values[input.name]=input.value
+                return values;
+            },{})
+                options.onSubmit(formValues);
             }
-
-        })
-    });
- }
-}
-validator.isRequired=function(selector){
-    return {
-        selector:selector,
-        test:function(value) {
-            // return value.trim() ? undefined : 'Vui long nhap truong nay'
-            return value ? undefined : 'Vui long nhap truong nay'
-        }
-    }
-
-}
-validator.isEmail=function(selector){
-    return {
-        selector:selector,
-        test:function(value) {
-            var rgx=/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/
-            return rgx.test(value) ? undefined : "vui long nhap email lai"
-        }
-    }
-
-}
-validator.isMinLength=function(selector,min){
-    return {
-        selector:selector,
-        test:function(value) {
-            return value.length>= min ? undefined : `vui long nhap toi thieu ${min} ky tu `
-        }
-    }
-
-}
-validator.isConfirmed=function(selector,getCofirmValue) {
-    return {
-        selector:selector,
-        test:function(value){
-            return value===getCofirmValue() ? undefined : 'Ban nhap sai mat khau'
+            else
+            formElement.submit();
         }
     }
 }
-validator({
-    form:'#form-1',
-    formGroupSelector:'.form-group',
-    errorSelector:'.form-mes',
-    rules:[
-        // validator.isRequired('#fullname',"Vui long nhap dau du ten cua ban nhe"),
-        // validator.isRequired('#email'),
-        // validator.isEmail('#email'),
-        // validator.isMinLength('#password',6),
-        // validator.isRequired('#password-confirmation'),
-        validator.isRequired('input[name="gender"]'),
-        // validator.isConfirmed('#password-confirmation',()=>{
-        //     return document.querySelector('#form-1 #password').value;
-        // }),
-    ],
-    onSubmit: function(data) {
-        console.log(data)
-    },
-})
+Validator
+    (
+    
+        '#register-form',
+        {
+            onSubmit: function (data)
+            {
+                console.log(data)
+            }
+        }
+    );
+

@@ -15,23 +15,23 @@ html {
     justify-content: center;
     height: 500px;
 }
-#form-1{
+#register-form{
     padding: 12px;
     min-width:250px;
     box-shadow: 1px 1px 10px rgba(0,0,0,.4);
 }
-#form-1 .heading{
+#register-form .heading{
     margin: 14px 20px;
     text-align: center;
 }
-#form-1 .desc{
+#register-form .desc{
     text-align: center;
     color: #888;
 }
-#form-1 .form-group.invalid input{
+#register-form .form-group.invalid input{
  border: 1px solid red;
 }
-#form-1 input,
+#register-form input,
 .form-submit{
     display: block;
     width: 100%;
@@ -39,12 +39,12 @@ html {
     border-radius: 4px;
     border: 1px solid #888
 }
-#form-1 .form-mes{
+#register-form .form-mes{
     margin-bottom: 8px;
     display: block;
     color: red;
 }
-#form-1 input:hover{
+#register-form input:hover{
  border-color: green;
 }
 .form-submit{
